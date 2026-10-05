@@ -422,6 +422,128 @@ app.put('/api/admin/text-slots/:id', requireAuth, wrap(async (req, res) => {
 }));
 
 // ---------------------------------------------------------------------------
+// BRAND ROUTES (homepage "Brands You'll Find Here" strip)
+// ---------------------------------------------------------------------------
+// Public: active brands only, in display order (used by the website strip).
+app.get('/api/brands', wrap(async (req, res) => {
+  const brands = (await db.query(
+    `SELECT id, name, logo_url, position, active
+     FROM brands WHERE active = TRUE
+     ORDER BY position ASC, id ASC`
+  )).rows;
+  res.json({ brands });
+}));
+
+// Admin: all brands (active + inactive), in display order.
+app.get('/api/admin/brands', requireAuth, wrap(async (req, res) => {
+  const brands = (await db.query(
+    'SELECT * FROM brands ORDER BY position ASC, id ASC'
+  )).rows;
+  res.json({ brands });
+}));
+
+// Admin: single brand by id.
+app.get('/api/admin/brands/:id', requireAuth, wrap(async (req, res) => {
+  const brand = await db.one('SELECT * FROM brands WHERE id = $1', [req.params.id]);
+  if (!brand) return res.status(404).json({ error: 'Brand not found.' });
+  res.json({ brand });
+}));
+
+// Admin: create brand.
+app.post('/api/admin/brands', requireAuth, wrap(async (req, res) => {
+  const { name, logo_url, storage_id, position, active } = req.body;
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ error: 'Brand name is required.' });
+  }
+
+  // Default new brands to the end of the list when no position is given.
+  let pos = Number(position);
+  if (!Number.isFinite(pos)) {
+    const max = (await db.one('SELECT COALESCE(MAX(position), 0)::int AS m FROM brands')).m;
+    pos = max + 1;
+  }
+
+  const brand = await db.one(
+    `INSERT INTO brands (name, logo_url, storage_id, position, active)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [
+      String(name).trim(), logo_url || '', storage_id || '', pos,
+      active === undefined ? true : Boolean(active),
+    ]
+  );
+  res.status(201).json({ brand });
+}));
+
+// Admin: update brand (name, order, active flag, logo).
+app.put('/api/admin/brands/:id', requireAuth, wrap(async (req, res) => {
+  const existing = await db.one('SELECT * FROM brands WHERE id = $1', [req.params.id]);
+  if (!existing) return res.status(404).json({ error: 'Brand not found.' });
+
+  const { name, logo_url, storage_id, position, active } = req.body;
+  const finalName = name !== undefined ? String(name).trim() : existing.name;
+  if (!finalName) return res.status(400).json({ error: 'Brand name is required.' });
+
+  const finalPos = position !== undefined && Number.isFinite(Number(position))
+    ? Number(position) : existing.position;
+
+  // If a new logo is supplied, best-effort delete the old stored object so
+  // obsolete uploads don't linger in storage.
+  if (storage_id !== undefined && existing.storage_id &&
+      existing.storage_id !== storage_id && storage.isConfigured()) {
+    try { await storage.deleteObject(existing.storage_id); }
+    catch (err) { console.warn('Brand logo delete failed for', existing.storage_id, err && err.message); }
+  }
+
+  const brand = await db.one(
+    `UPDATE brands SET name = $1, logo_url = $2, storage_id = $3,
+       position = $4, active = $5, updated_at = now()
+     WHERE id = $6 RETURNING *`,
+    [
+      finalName,
+      logo_url !== undefined ? logo_url : existing.logo_url,
+      storage_id !== undefined ? storage_id : existing.storage_id,
+      finalPos,
+      active !== undefined ? Boolean(active) : existing.active,
+      req.params.id,
+    ]
+  );
+  res.json({ brand });
+}));
+
+// Admin: delete brand (also removes its stored logo, best-effort).
+app.delete('/api/admin/brands/:id', requireAuth, wrap(async (req, res) => {
+  const existing = await db.one('SELECT * FROM brands WHERE id = $1', [req.params.id]);
+  if (!existing) return res.status(404).json({ error: 'Brand not found.' });
+
+  if (existing.storage_id && storage.isConfigured()) {
+    try { await storage.deleteObject(existing.storage_id); }
+    catch (err) { console.warn('Brand logo delete failed for', existing.storage_id, err && err.message); }
+  }
+
+  await db.query('DELETE FROM brands WHERE id = $1', [req.params.id]);
+  res.json({ success: true });
+}));
+
+// Admin: upload a brand logo -> Supabase Storage -> return { url, storage_id }.
+// The admin UI then saves these onto the brand via create/update.
+app.post('/api/admin/brands/logo', requireAuth, upload.single('file'), wrap(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+  if (!storage.isConfigured()) {
+    return res.status(500).json({ error: 'Image storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.' });
+  }
+
+  let result;
+  try {
+    result = await storage.uploadBuffer(req.file.buffer, req.file.originalname, req.file.mimetype);
+  } catch (err) {
+    console.error('Supabase Storage upload failed:', err && err.message ? err.message : err);
+    return res.status(502).json({ error: 'Logo upload to storage failed. Please try again.' });
+  }
+
+  res.status(201).json({ url: result.url, storage_id: result.path });
+}));
+
+// ---------------------------------------------------------------------------
 // DASHBOARD STATS
 // ---------------------------------------------------------------------------
 app.get('/api/admin/stats', requireAuth, wrap(async (req, res) => {
@@ -429,9 +551,10 @@ app.get('/api/admin/stats', requireAuth, wrap(async (req, res) => {
   const publishedBlogs = (await db.one("SELECT COUNT(*)::int AS cnt FROM blogs WHERE status = 'published'")).cnt;
   const draftBlogs = (await db.one("SELECT COUNT(*)::int AS cnt FROM blogs WHERE status = 'draft'")).cnt;
   const totalMedia = (await db.one('SELECT COUNT(*)::int AS cnt FROM media')).cnt;
+  const totalBrands = (await db.one('SELECT COUNT(*)::int AS cnt FROM brands')).cnt;
   const recentBlogs = (await db.query('SELECT id, title, status, updated_at FROM blogs ORDER BY updated_at DESC LIMIT 5')).rows;
 
-  res.json({ totalBlogs, publishedBlogs, draftBlogs, totalMedia, recentBlogs });
+  res.json({ totalBlogs, publishedBlogs, draftBlogs, totalMedia, totalBrands, recentBlogs });
 }));
 
 // ---------------------------------------------------------------------------

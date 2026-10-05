@@ -299,9 +299,9 @@
     }
     .hero-inner {
       max-width: 1280px; margin: 0 auto; padding: 0 24px;
-      display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 40px;
+      display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 56px;
     }
-    .hero-content { padding-bottom: 80px; }
+    .hero-content { padding-bottom: 72px; padding-top: 8px; }
     .hero-eyebrow {
       display: inline-flex; align-items: center; gap: 8px;
       background: var(--white); border-radius: 20px;
@@ -324,29 +324,34 @@
       font-size: 1.2rem; font-weight: 700; color: var(--orange-text); white-space: nowrap;
     }
     .hero-stat-label { font-size: .75rem; color: var(--gray-600); font-weight: 600; }
-    .hero-images {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-      align-items: end; padding-bottom: 0;
+    /* ---- SINGLE HERO IMAGE ----
+       One strong, premium main image. No side pills or floating badges —
+       the image carries the whole visual weight and stays perfectly
+       responsive via aspect-ratio (never hardcoded desktop pixels). */
+    .hero-visual {
+      display: flex; align-items: center; justify-content: center;
+      padding-bottom: 72px;
     }
     .hero-img-main {
-      grid-column: 1 / -1; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      overflow: hidden; height: 360px; position: relative;
+      position: relative; width: 100%;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      aspect-ratio: 5 / 4;
+      box-shadow: var(--shadow-md);
+      background: var(--white);
+      border: 6px solid var(--white);
     }
-    .hero-img-main img { width: 100%; height: 100%; object-fit: cover; }
-    .hero-img-side {
-      border-radius: var(--radius-md) var(--radius-md) 0 0;
-      overflow: hidden; height: 220px;
+    /* Soft orange ring behind the frame for a little depth. */
+    .hero-img-main::after {
+      content: ''; position: absolute; inset: 0;
+      border-radius: var(--radius-lg);
+      box-shadow: inset 0 0 0 1px rgba(31,37,48,.04);
+      pointer-events: none;
     }
-    .hero-img-side img { width: 100%; height: 100%; object-fit: cover; }
-    .hero-badge-float {
-      position: absolute; background: var(--white);
-      border-radius: var(--radius-md); padding: 10px 16px;
-      box-shadow: var(--shadow-md); font-weight: 800; font-size: .85rem;
+    .hero-img-main img {
+      width: 100%; height: 100%; object-fit: cover; object-position: center;
+      display: block;
     }
-    .hero-badge-float.top-right { top: 20px; right: 20px; display: flex; align-items: center; gap: 8px; }
-    .hero-badge-float.bottom-left { bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 2px; }
-    .badge-icon { font-size: 1.3rem; }
-    .badge-text-sm { font-size: .7rem; color: var(--gray-600); font-weight: 600; }
 
     /* =========================================
        SHOP CAROUSEL
@@ -712,12 +717,16 @@
     }
     .brand-tile:hover::before { transform: scaleX(1); }
     .brand-tile:hover::after  { opacity: 1; }
-    /* Real logo image (revealed only once it loads successfully). */
+    /* Real logo image (revealed only once it loads successfully).
+       A fixed presentation box + object-fit:contain keeps every logo the
+       same visual size and perfectly aligned, no matter its source
+       dimensions or aspect ratio — small logos aren't tiny, large/wide
+       logos aren't stretched or cropped. */
     .brand-tile img.brand-logo {
       display: none; position: relative; z-index: 1;
-      width: auto; height: auto;
-      max-width: 110px; max-height: 48px;
-      object-fit: contain;
+      width: 100%; height: 100%;
+      max-width: 132px; max-height: 64px;
+      object-fit: contain; object-position: center;
     }
     /* Clean typographic fallback shown when there is no real logo yet —
        set as a warm gradient wordmark so it reads as intentional branding. */
@@ -797,8 +806,20 @@
     .testi-avatar {
       width: 44px; height: 44px; border-radius: 50%; overflow: hidden;
       background: var(--orange-pale); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
     }
-    .testi-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .testi-avatar img { width: 100%; height: 100%; object-fit: cover; position: relative; z-index: 1; }
+    /* Professional fallback: when the avatar image is missing/failed and has
+       been removed, the reviewer's initials show instead of a broken icon. */
+    .testi-avatar[data-initials]::before {
+      content: attr(data-initials);
+      position: absolute; inset: 0; z-index: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif; font-weight: 800; font-size: .85rem;
+      color: var(--orange-text);
+      background: var(--orange-pale);
+    }
     .testi-name { font-size: .875rem; font-weight: 800; color: var(--gray-900); }
     .testi-role { font-size: .75rem; color: var(--gray-600); }
     .testi-rating { color: var(--sun); font-size: .85rem; margin-bottom: 4px; }
@@ -976,9 +997,13 @@
     /* ---- Tablet ---- */
     @media (max-width: 900px) {
       .hero { padding-top: 44px; }
-      .hero-inner { grid-template-columns: 1fr; }
-      .hero-images { display: none; }
-      .hero-content { padding-bottom: 56px; }
+      /* Intentional stacked mobile hero: heading → text → CTAs → stats →
+         image. The image STAYS visible (it is never display:none) and keeps
+         a sensible aspect ratio so it reads clearly on narrow screens. */
+      .hero-inner { grid-template-columns: 1fr; gap: 32px; }
+      .hero-content { padding-bottom: 0; text-align: left; }
+      .hero-visual { padding-bottom: 48px; order: 2; }
+      .hero-img-main { aspect-ratio: 16 / 11; max-width: 560px; margin: 0 auto; }
       .cat-grid { grid-template-columns: repeat(2, 1fr); }
       .collections-grid { grid-auto-rows: 240px; }
       .testimonials-grid { grid-template-columns: 1fr; }
@@ -1011,8 +1036,12 @@
       .footer-main { grid-template-columns: 1fr; gap: 32px; }
       .footer-bottom-inner { flex-direction: column; text-align: center; gap: 14px; }
       .trust-grid { grid-template-columns: 1fr; }
+      .hero { padding-top: 34px; }
+      .hero-inner { gap: 26px; padding: 0 18px; }
+      .hero-visual { padding-bottom: 40px; }
+      .hero-img-main { aspect-ratio: 4 / 3; border-width: 5px; border-radius: var(--radius-md); }
       .hero-ctas .btn { width: 100%; justify-content: center; }
-      .hero-stats { gap: 20px; }
+      .hero-stats { gap: 20px; flex-wrap: wrap; }
       .carousel { border-radius: var(--radius-md); }
       .carousel-slide { aspect-ratio: 4 / 3; }
       .carousel-btn { width: 38px; height: 38px; }
@@ -1147,14 +1176,14 @@
   ========================================================== -->
   <header class="navbar" id="top">
     <div class="navbar-inner">
-      <a href="#top" class="logo" aria-label="RTBW — home">
+      <a href="/" class="logo" data-home aria-label="RTBW — home">
         <img class="logo-img" src="assets/logo.png" alt="RTBW" />
         <span class="logo-text">RTBW</span>
         <span class="logo-tag">Babies &middot; Kids &middot; Moms</span>
       </a>
 
       <nav class="nav-links" aria-label="Main navigation">
-        <a href="#top" class="active">Home</a>
+        <a href="/" class="active" data-home>Home</a>
         <a href="#categories">Categories</a>
         <a href="#about">About</a>
         <a href="#featured">Products</a>
@@ -1178,14 +1207,14 @@
   <div class="nav-overlay" id="navOverlay" hidden></div>
   <aside class="nav-drawer" id="navDrawer" aria-label="Mobile navigation" aria-hidden="true">
     <div class="nav-drawer-head">
-      <span class="logo">
+      <a href="/" class="logo" data-home aria-label="RTBW — home">
         <img class="logo-img" src="assets/logo.png" alt="RTBW" style="height:32px;" />
         <span class="logo-text" style="font-size:1.3rem;">RTBW</span>
-      </span>
+      </a>
       <button class="nav-drawer-close" id="navClose" aria-label="Close menu">&times;</button>
     </div>
     <nav>
-      <a href="#top" class="active">Home</a>
+      <a href="/" class="active" data-home>Home</a>
       <a href="#categories">Categories</a>
       <a href="#about">About</a>
       <a href="#featured">Products</a>
@@ -1241,29 +1270,9 @@
           </div>
         </div>
       </div>
-      <div class="hero-images reveal-right" aria-hidden="true">
-        <div class="hero-img-main" style="position:relative;">
-          <img data-slot="hero_main" src="image assets/imgi_123_b1-400.jpg" alt="Baby and kids products display" loading="eager" />
-          <div class="hero-badge-float top-right">
-            <span class="badge-icon" style="color:var(--orange);display:flex;">
-              <svg style="width:22px;height:22px;" aria-hidden="true"><use href="#i-shield"/></svg>
-            </span>
-            <div>
-              <div style="font-size:.8rem;font-weight:900;color:var(--orange-text);">Parent Approved</div>
-              <div class="badge-text-sm">Quality checked</div>
-            </div>
-          </div>
-          <div class="hero-badge-float bottom-left">
-            <div style="font-size:.72rem;color:var(--gray-600);font-weight:700;">Trusted by families</div>
-            <div style="font-size:.82rem;font-weight:900;">"Great range, fair prices."</div>
-            <div class="badge-text-sm">— Meera R., regular customer</div>
-          </div>
-        </div>
-        <div class="hero-img-side">
-          <img data-slot="hero_side_1" src="image assets/imgi_19_HolaShapeSortingBus1.webp" alt="Learning toys for toddlers" loading="eager" />
-        </div>
-        <div class="hero-img-side">
-          <img data-slot="hero_side_2" src="image assets/imgi_101_Peek-A-BooISeeYouJungle_1024x1024_0b891654-a445-4325-86bd-315883045819.webp" alt="Kids apparel and play items" loading="eager" />
+      <div class="hero-visual reveal-right">
+        <div class="hero-img-main">
+          <img data-slot="hero_main" src="image assets/imgi_123_b1-400.jpg" alt="Baby and kids products display" loading="eager" decoding="async" />
         </div>
       </div>
     </div>
@@ -1866,7 +1875,7 @@
           <div class="testi-rating" aria-label="5 stars">★★★★★</div>
           <p class="testi-text">Got my daughter's entire school kit here — bag, bottle and stationery. Good quality and the pricing was better than anywhere else nearby.</p>
           <div class="testi-author">
-            <div class="testi-avatar"><img src="image assets/avatar-1.svg" alt="" loading="lazy" /></div>
+            <div class="testi-avatar" data-initials="AK"><img src="/image-assets/avatar-1.svg" alt="" loading="lazy" onerror="this.remove()" /></div>
             <div>
               <div class="testi-name">Ananya K.</div>
               <div class="testi-role">Mother of one</div>
@@ -1879,7 +1888,7 @@
           <div class="testi-rating" aria-label="5 stars">★★★★★</div>
           <p class="testi-text">We picked up a carrier and a walker. The staff explained the differences properly instead of pushing the expensive one. Really appreciated that.</p>
           <div class="testi-author">
-            <div class="testi-avatar"><img src="image assets/avatar-2.svg" alt="" loading="lazy" /></div>
+            <div class="testi-avatar" data-initials="RM"><img src="/image-assets/avatar-2.svg" alt="" loading="lazy" onerror="this.remove()" /></div>
             <div>
               <div class="testi-name">Rahul M.</div>
               <div class="testi-role">Father of two</div>
@@ -1892,7 +1901,7 @@
           <div class="testi-rating" aria-label="5 stars">★★★★★</div>
           <p class="testi-text">The newborn clothing range is lovely and soft, and there's a good selection of party wear too. My go-to shop for gifting now.</p>
           <div class="testi-author">
-            <div class="testi-avatar"><img src="image assets/avatar-3.svg" alt="" loading="lazy" /></div>
+            <div class="testi-avatar" data-initials="PS"><img src="/image-assets/avatar-3.svg" alt="" loading="lazy" onerror="this.remove()" /></div>
             <div>
               <div class="testi-name">Priya S.</div>
               <div class="testi-role">Regular customer</div>
@@ -2068,7 +2077,7 @@
     <div class="footer-main">
       <!-- Brand -->
       <div class="footer-brand">
-        <a href="#top" class="logo" aria-label="RTBW — home">
+        <a href="/" class="logo" data-home aria-label="RTBW — home">
           <img class="logo-img" src="assets/logo.png" alt="RTBW" />
           <span class="logo-text">RTBW</span>
         </a>
@@ -2084,7 +2093,7 @@
       <div class="footer-col">
         <h4>Quick Links</h4>
         <ul>
-          <li><a href="#top">Home</a></li>
+          <li><a href="/" data-home>Home</a></li>
           <li><a href="#categories">Categories</a></li>
           <li><a href="#about">About Us</a></li>
           <li><a href="#featured">Featured Products</a></li>
@@ -2409,27 +2418,60 @@
 
     /* ----- 5. Smooth scroll + active nav link ----- */
     function initNavHighlight() {
+      var allLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-links a'));
+      var homeLink = document.querySelector('.nav-links a[data-home]');
       var links = document.querySelectorAll('.nav-links a[href^="#"]');
-      if (!links.length) return;
+      if (!links.length && !homeLink) return;
 
       var targets = [];
       links.forEach(function (link) {
         var el = document.querySelector(link.getAttribute('href'));
         if (el) targets.push({ link: link, el: el });
       });
-      if (!targets.length) return;
 
       function update() {
         var pos = window.scrollY + 140;
+        // Near the very top of the page, "Home" is the active link.
+        if (homeLink && window.scrollY < 120) {
+          allLinks.forEach(function (l) { l.classList.remove('active'); });
+          homeLink.classList.add('active');
+          return;
+        }
+        if (!targets.length) return;
         var current = targets[0];
         targets.forEach(function (t) {
           if (t.el.offsetTop <= pos) current = t;
         });
-        links.forEach(function (l) { l.classList.remove('active'); });
+        allLinks.forEach(function (l) { l.classList.remove('active'); });
         current.link.classList.add('active');
       }
       window.addEventListener('scroll', update, { passive: true });
       update();
+    }
+
+    /* ----- 5b. Home / logo navigation -----
+       The logo and "Home" links point at "/" so they always reach the
+       homepage from any page (SEO-friendly, back/forward safe). When the
+       user is ALREADY on the homepage, intercept the click and smooth-scroll
+       to the top instead of triggering an unnecessary full page reload. */
+    function initHomeLinks() {
+      var onHome = window.location.pathname === '/' ||
+                   /\/index\.html?$/.test(window.location.pathname);
+      if (!onHome) return;  // on inner pages, let "/" navigate normally
+
+      document.querySelectorAll('a[data-home]').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+          // Respect new-tab / modifier clicks.
+          if (e.defaultPrevented || e.button !== 0 || e.metaKey ||
+              e.ctrlKey || e.shiftKey || e.altKey) return;
+          e.preventDefault();
+          window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+          // Clear any lingering #hash so the URL reflects the homepage root.
+          if (window.location.hash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+        });
+      });
     }
 
     /* ----- 6. Button ripple ----- */
@@ -2497,12 +2539,21 @@
           var html = '<div class="testimonials-grid" style="margin-top:24px;">';
           reviews.slice(0, 6).forEach(function (rv) {
             var stars = '★★★★★'.slice(0, Math.round(rv.rating || 5));
+            var name = rv.author_name || 'Google user';
+            var initials = name.trim().split(/\s+/).map(function (w) { return w.charAt(0); })
+                               .join('').slice(0, 2).toUpperCase() || 'G';
+            // Avatar always has an initials fallback; the image removes itself
+            // on error so a broken-image icon is never shown.
+            var avatar = '<div class="testi-avatar" data-initials="' + escapeHtml(initials) + '">'
+                 + (rv.profile_photo_url
+                     ? '<img src="' + escapeHtml(rv.profile_photo_url) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />'
+                     : '')
+                 + '</div>';
             html += '<div class="testi-card">'
                  +    '<div class="testi-rating" aria-label="rating">' + stars + '</div>'
                  +    '<p class="testi-text">' + escapeHtml(rv.text || '') + '</p>'
-                 +    '<div class="testi-author"><div class="testi-avatar">'
-                 +      (rv.profile_photo_url ? '<img src="' + rv.profile_photo_url + '" alt="" loading="lazy" />' : '')
-                 +    '</div><div><div class="testi-name">' + escapeHtml(rv.author_name || 'Google user') + '</div>'
+                 +    '<div class="testi-author">' + avatar
+                 +    '<div><div class="testi-name">' + escapeHtml(name) + '</div>'
                  +    '<div class="testi-role">' + escapeHtml(rv.relative_time_description || '') + '</div></div></div>'
                  +    '<div class="testi-source">' + google + ' Posted on Google</div>'
                  +  '</div>';
@@ -2527,26 +2578,16 @@
        track with prev/next buttons, native touch/swipe, keyboard support,
        and gentle autoplay that pauses on hover/focus/interaction and
        respects prefers-reduced-motion. */
-    var BRANDS = [
-      { name: 'Sebamed',           logo: '/image-assets/brands/sebamed.svg' },
-      { name: 'Cetaphil',          logo: '/image-assets/brands/cetaphil.svg' },
-      { name: 'Chicco',            logo: '/image-assets/brands/chicco.svg' },
-      { name: 'Cello',             logo: '/image-assets/brands/cello.svg' },
-      { name: 'Milton',            logo: '/image-assets/brands/milton.svg' },
-      { name: 'DOMS',              logo: '/image-assets/brands/doms.svg' },
-      { name: 'Mattel',            logo: '/image-assets/brands/mattel.svg' },
-      { name: 'Funskool',          logo: '/image-assets/brands/funskool.svg' },
-      { name: 'Jockey',            logo: '/image-assets/brands/jockey.svg' },
-      { name: 'Ramraj',            logo: '/image-assets/brands/ramraj.svg' },
-      { name: 'Sukaniya',          logo: '/image-assets/brands/sukaniya.svg' },
-      { name: 'Kothari Creations', logo: '/image-assets/brands/kothari-creations.svg' },
-      { name: 'Otto',              logo: '/image-assets/brands/otto.svg' },
-      { name: 'Mee Mee',           logo: '/image-assets/brands/mee-mee.svg' },
-      { name: 'Krakki',            logo: '/image-assets/brands/krakki.svg' },
-      { name: 'Bodycare',          logo: '/image-assets/brands/bodycare.svg' },
-      { name: 'Ollypop',           logo: '/image-assets/brands/ollypop.svg' },
-      { name: 'LEGO',              logo: '/image-assets/brands/lego.svg' },
-      { name: 'Monopoly',          logo: '/image-assets/brands/monopoly.svg' }
+    // Fallback brand names used only if the /api/brands request fails
+    // (e.g. the API is briefly unavailable). Normally the admin-managed
+    // brands from the database are used instead.
+    var BRANDS_FALLBACK = [
+      { name: 'Sebamed', logo: '' }, { name: 'Cetaphil', logo: '' },
+      { name: 'Chicco', logo: '' }, { name: 'Cello', logo: '' },
+      { name: 'Milton', logo: '' }, { name: 'DOMS', logo: '' },
+      { name: 'Mattel', logo: '' }, { name: 'Funskool', logo: '' },
+      { name: 'Jockey', logo: '' }, { name: 'LEGO', logo: '' },
+      { name: 'Mee Mee', logo: '' }, { name: 'Monopoly', logo: '' }
     ];
 
     function initBrands() {
@@ -2571,14 +2612,14 @@
         word.textContent = b.name;
         tile.appendChild(word);
 
-        if (b.logo) {
+        var logo = b.logo || b.logo_url;
+        if (logo) {
           var img = document.createElement('img');
           img.className = 'brand-logo';
-          img.src = b.logo;
+          img.src = logo;
           img.alt = hidden ? '' : b.name;   // duplicate sequence is decorative
           img.loading = 'lazy';
           img.decoding = 'async';
-          img.width = 110; img.height = 48;  // reserve space -> no layout shift
           // Only reveal the image once it successfully loads; otherwise keep
           // the polished text wordmark.
           img.addEventListener('load', function () { tile.classList.add('has-logo'); });
@@ -2591,11 +2632,29 @@
       // Fill BOTH sequences from the same data. The first is announced to
       // screen readers; the second is aria-hidden (set in the markup) so the
       // brand list isn't read out twice.
-      sequences.forEach(function (seq) {
-        var hidden = seq.getAttribute('data-seq') === '1';
-        seq.innerHTML = '';
-        BRANDS.forEach(function (b) { seq.appendChild(makeTile(b, hidden)); });
-      });
+      function render(list) {
+        if (!list || !list.length) {
+          // No active brands -> hide the whole section cleanly.
+          var section = document.getElementById('brands');
+          if (section) section.style.display = 'none';
+          return;
+        }
+        sequences.forEach(function (seq) {
+          var hidden = seq.getAttribute('data-seq') === '1';
+          seq.innerHTML = '';
+          list.forEach(function (b) { seq.appendChild(makeTile(b, hidden)); });
+        });
+      }
+
+      // Load admin-managed brands from the API; fall back to the static list
+      // only if the request fails.
+      fetch('/api/brands')
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function (data) {
+          var list = (data && data.brands) || [];
+          render(list.length ? list : BRANDS_FALLBACK);
+        })
+        .catch(function () { render(BRANDS_FALLBACK); });
 
       // Touch devices have no hover, so let a tap toggle pause/resume.
       // The CSS animation keeps its position when paused (no JS timers).
@@ -2611,6 +2670,7 @@
       initCarousel();
       initBrands();
       initFilter();
+      initHomeLinks();
       initNavHighlight();
       initRipple();
       initYear();

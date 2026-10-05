@@ -125,6 +125,21 @@ async function createTables() {
     );
   `);
 
+  // Brands shown in the homepage "Brands You'll Find Here" strip.
+  // Admin-managed via the CMS (name, logo, display order, active flag).
+  await query(`
+    CREATE TABLE IF NOT EXISTS brands (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      logo_url TEXT DEFAULT '',
+      storage_id TEXT DEFAULT '',
+      position INTEGER DEFAULT 0,
+      active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+
   // Older databases may not have the storage_id column — add it if missing.
   await query(`ALTER TABLE media ADD COLUMN IF NOT EXISTS storage_id TEXT DEFAULT '';`);
 }
@@ -255,6 +270,15 @@ const TEXT_SLOTS = [
   { key: 'coll_5_title', section: 'Shop by Interest', label: 'Card 5 — Title',               content: 'Learning & Puzzle Toys' },
 ];
 
+// Default brand names for the homepage brand strip. Seeded once (text
+// wordmarks); the admin can then upload real logos, reorder, disable or
+// remove them from the CMS → Brands panel.
+const DEFAULT_BRANDS = [
+  'Sebamed', 'Cetaphil', 'Chicco', 'Cello', 'Milton', 'DOMS', 'Mattel',
+  'Funskool', 'Jockey', 'Ramraj', 'Sukaniya', 'Kothari Creations', 'Otto',
+  'Mee Mee', 'Krakki', 'Bodycare', 'Ollypop', 'LEGO', 'Monopoly',
+];
+
 async function seed() {
   // --- Admin user (only if none exists) ---
   const userCount = await one('SELECT COUNT(*)::int AS cnt FROM users');
@@ -332,6 +356,24 @@ async function seed() {
     [JSON.stringify(TEXT_SLOTS.map((t) => ({ slot_key: t.key, label: t.label })))]
   )).rowCount;
   if (relabelledText > 0) console.log(`Renamed ${relabelledText} text slot label(s).`);
+
+  // --- Brands: seed the default list ONCE (only if the table is empty) ---
+  // After the first seed we never touch brands again, so admin edits,
+  // additions, reorders and deletions are always preserved.
+  const brandCount = await one('SELECT COUNT(*)::int AS cnt FROM brands');
+  if (brandCount.cnt === 0) {
+    const seedBrands = DEFAULT_BRANDS.map((name, i) => ({
+      name, logo_url: '', storage_id: '', position: i + 1, active: true,
+    }));
+    const addedBrands = (await query(
+      `INSERT INTO brands (name, logo_url, storage_id, position, active)
+       SELECT name, logo_url, storage_id, position, active
+       FROM json_to_recordset($1::json)
+         AS x(name text, logo_url text, storage_id text, position int, active boolean)`,
+      [JSON.stringify(seedBrands)]
+    )).rowCount;
+    if (addedBrands > 0) console.log(`Seeded ${addedBrands} brand(s).`);
+  }
 }
 
 async function initDb() {

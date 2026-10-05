@@ -151,6 +151,19 @@
     }
     .badge-published { background: #D1FAE5; color: #065F46; }
     .badge-draft { background: #FEF3C7; color: #92400E; }
+    /* Brand logo cell: a fixed box keeps every logo the same visual size and
+       stops large/small logos from distorting the table row. */
+    .brand-logo-cell {
+      width: 64px; height: 40px; border-radius: 8px;
+      background: var(--gray-50); border: 1px solid var(--gray-200);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .brand-logo-cell img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+    .brand-logo-fallback {
+      font-family: 'Poppins', sans-serif; font-weight: 800; font-size: .78rem;
+      color: var(--orange-text);
+    }
     /* Buttons */
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
@@ -472,6 +485,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V5h16v2M9 20h6M12 5v15"/></svg>
         Website Text
       </a>
+      <a href="#" data-page="brands">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Brands
+      </a>
     </nav>
     <div class="sidebar-footer">
       <a href="/" target="_blank" style="font-weight:700;color:var(--orange-text);display:block;margin-bottom:8px;">View Website →</a>
@@ -498,6 +515,7 @@
           <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-num" id="statPublished">0</div><div class="stat-label">Published</div></div>
           <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-num" id="statDrafts">0</div><div class="stat-label">Drafts</div></div>
           <div class="stat-card"><div class="stat-icon">🖼️</div><div class="stat-num" id="statMedia">0</div><div class="stat-label">Media Files</div></div>
+          <div class="stat-card"><div class="stat-icon">🏷️</div><div class="stat-num" id="statBrands">0</div><div class="stat-label">Brands</div></div>
         </div>
         <h3 style="margin-bottom:16px;">Recent Activity</h3>
         <table class="data-table" id="recentTable">
@@ -640,6 +658,39 @@
         <div id="textSlotsContainer"></div>
       </div>
 
+      <!-- BRANDS -->
+      <div class="page-view" id="page-brands">
+        <div class="toolbar" style="justify-content:space-between;">
+          <p style="color:var(--gray-600);font-size:.9rem;margin:0;max-width:560px;">
+            Manage the logos shown in the website's <strong>"Brands You'll Find Here"</strong> strip.
+            Add a brand, upload its logo, set the display order, and turn it on or off.
+          </p>
+          <button class="btn btn-primary" onclick="openBrandModal()">+ Add Brand</button>
+        </div>
+
+        <table class="data-table" id="brandsTable">
+          <thead>
+            <tr>
+              <th style="width:88px;">Logo</th>
+              <th>Brand Name</th>
+              <th style="width:120px;">Status</th>
+              <th style="width:90px;">Order</th>
+              <th style="width:150px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="brandsBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--gray-600);">Loading…</td></tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state" id="brandsEmpty" style="display:none;">
+          <div class="empty-icon">🏷️</div>
+          <h3>No brands added yet</h3>
+          <p>Add the first brand to display it in the website's brand section.</p>
+          <button class="btn btn-primary" style="margin-top:18px;" onclick="openBrandModal()">+ Add Brand</button>
+        </div>
+      </div>
+
     </div><!-- /content -->
   </div><!-- /main -->
 
@@ -658,6 +709,72 @@
         <button class="btn btn-primary btn-sm" onclick="confirmMediaPick()">Select</button>
         <button class="btn btn-secondary btn-sm" onclick="closeMediaPicker()">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Brand Add/Edit Modal -->
+  <div class="modal-overlay" id="brandModal">
+    <div class="modal" style="max-width:520px;position:relative;">
+      <button class="modal-close" onclick="closeBrandModal()">✕</button>
+      <h3 id="brandModalTitle">Add Brand</h3>
+      <form id="brandForm" onsubmit="saveBrand(event)">
+        <input type="hidden" id="brandId" value="" />
+
+        <div class="form-group">
+          <label for="brandName">Brand Name *</label>
+          <input type="text" id="brandName" required placeholder="e.g. Chicco" />
+        </div>
+
+        <div class="form-group">
+          <label>Brand Logo</label>
+          <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+            <div id="brandLogoPreview" style="width:120px;height:72px;border:1.5px solid var(--gray-200);border-radius:12px;background:var(--gray-50);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <span style="font-size:.72rem;color:var(--gray-600);text-align:center;padding:8px;">No logo yet</span>
+            </div>
+            <div style="flex:1;min-width:180px;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('brandLogoInput').click()">
+                <span id="brandLogoBtnLabel">Upload Logo</span>
+              </button>
+              <input type="file" id="brandLogoInput" accept="image/jpeg,image/png,image/webp,image/svg+xml" style="display:none" onchange="uploadBrandLogo(this.files)" />
+              <p style="font-size:.72rem;color:var(--gray-600);margin-top:8px;">
+                PNG, JPG, WEBP or SVG. A transparent PNG/SVG looks best. Max 10MB.
+              </p>
+            </div>
+          </div>
+          <input type="hidden" id="brandLogoUrl" value="" />
+          <input type="hidden" id="brandStorageId" value="" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="brandPosition">Display Order</label>
+            <input type="number" id="brandPosition" min="1" step="1" placeholder="e.g. 1" />
+          </div>
+          <div class="form-group">
+            <label for="brandActive">Status</label>
+            <div class="custom-select" id="brandStatusSelect">
+              <button type="button" class="custom-select-trigger" onclick="document.getElementById('brandStatusSelect').classList.toggle('open')">
+                <span id="brandStatusValue"><span class="status-dot published"></span> Active</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="custom-select-dropdown">
+                <div class="custom-select-option active" data-value="true" onclick="selectBrandStatus(true)">
+                  <span class="status-dot published"></span> Active
+                </div>
+                <div class="custom-select-option" data-value="false" onclick="selectBrandStatus(false)">
+                  <span class="status-dot draft"></span> Inactive
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="brandActive" value="true" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="brandSaveBtn">Save Brand</button>
+          <button type="button" class="btn btn-secondary" onclick="closeBrandModal()">Cancel</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -870,7 +987,8 @@
       'blog-editor': editingBlogId ? 'Edit Blog' : 'Create New Blog',
       media: 'Media Library',
       'image-slots': 'Website Images',
-      'text-slots': 'Website Text'
+      'text-slots': 'Website Text',
+      brands: 'Brands'
     };
     document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
     document.getElementById('breadcrumb').textContent = 'Admin / ' + (titles[page] || 'Dashboard');
@@ -882,6 +1000,7 @@
     else if (page === 'media') loadMedia();
     else if (page === 'image-slots') loadImageSlots();
     else if (page === 'text-slots') loadTextSlots();
+    else if (page === 'brands') loadBrands();
   }
 
   // Sidebar click handlers
@@ -926,6 +1045,7 @@
       document.getElementById('statPublished').textContent = data.publishedBlogs;
       document.getElementById('statDrafts').textContent = data.draftBlogs;
       document.getElementById('statMedia').textContent = data.totalMedia;
+      if (data.totalBrands != null) document.getElementById('statBrands').textContent = data.totalBrands;
 
       const tbody = document.getElementById('recentBody');
       if (data.recentBlogs.length === 0) {
@@ -1199,7 +1319,7 @@
       // Define section order matching the website top-to-bottom
       const sectionOrder = ['Hero', 'Shop Carousel', 'Collections', 'Featured Products', 'Promotions', 'Locations', 'Instagram'];
       const sectionDescriptions = {
-        'Hero': 'The large banner area at the very top of your homepage with the main image and two side images.',
+        'Hero': 'The large banner area at the very top of your homepage. One single main image sits beside the heading and buttons.',
         'Shop Carousel': 'The slideshow of store photos that auto-rotates in the "Inside Our Store" section.',
         'Collections': 'The gallery grid in "Shop by Interest" — one large card, smaller cards, and a full-width banner.',
         'Featured Products': 'The 8 product cards in the "Featured Products — Picked Out For You" section.',
@@ -1211,9 +1331,7 @@
       // Recommended upload size for each specific image slot.
       // { w, h, note } — w×h is the ideal pixel size, note explains the shape.
       const slotDimensions = {
-        hero_main:               { w: 900,  h: 700,  note: 'Landscape (≈4:3)' },
-        hero_side_1:             { w: 600,  h: 450,  note: 'Landscape (≈4:3)' },
-        hero_side_2:             { w: 600,  h: 450,  note: 'Landscape (≈4:3)' },
+        hero_main:               { w: 1000, h: 800,  note: 'Portrait-ish (5:4)' },
         carousel_1:              { w: 800,  h: 1000, note: 'Portrait (4:5)' },
         carousel_2:              { w: 800,  h: 1000, note: 'Portrait (4:5)' },
         carousel_3:              { w: 800,  h: 1000, note: 'Portrait (4:5)' },
@@ -1245,9 +1363,15 @@
         insta_6:                 { w: 800,  h: 800,  note: 'Square (1:1)' }
       };
 
+      // The hero now uses a single main image. The old side-image slots
+      // (hero_side_1 / hero_side_2) are no longer shown on the website, so
+      // hide them here too to keep this panel in sync with the live site.
+      const HIDDEN_SLOTS = ['hero_side_1', 'hero_side_2'];
+
       // Group slots by section
       const grouped = {};
       data.slots.forEach(s => {
+        if (HIDDEN_SLOTS.includes(s.slot_key)) return;
         if (!grouped[s.section]) grouped[s.section] = [];
         grouped[s.section].push(s);
       });
@@ -1530,6 +1654,173 @@
     }
   }
 
+  // ===== BRANDS =====
+  async function loadBrands() {
+    const tbody = document.getElementById('brandsBody');
+    const table = document.getElementById('brandsTable');
+    const empty = document.getElementById('brandsEmpty');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-600);">Loading…</td></tr>';
+    try {
+      const data = await api('/api/admin/brands');
+      if (!data) return;
+      const brands = data.brands || [];
+
+      if (brands.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      table.style.display = '';
+      empty.style.display = 'none';
+
+      tbody.innerHTML = brands.map(b => {
+        const logoCell = b.logo_url
+          ? `<div class="brand-logo-cell"><img src="${escHtml(b.logo_url)}" alt="${escHtml(b.name)} logo" loading="lazy" onerror="this.parentNode.innerHTML='<span class=\\'brand-logo-fallback\\'>${escHtml(initials(b.name))}</span>'" /></div>`
+          : `<div class="brand-logo-cell"><span class="brand-logo-fallback">${escHtml(initials(b.name))}</span></div>`;
+        const statusBadge = b.active
+          ? '<span class="badge badge-published">Active</span>'
+          : '<span class="badge badge-draft">Inactive</span>';
+        return `
+          <tr>
+            <td>${logoCell}</td>
+            <td><strong>${escHtml(b.name)}</strong></td>
+            <td>${statusBadge}</td>
+            <td>${b.position != null ? b.position : '—'}</td>
+            <td>
+              <button class="btn-icon" onclick="editBrand(${b.id})" title="Edit">✎</button>
+              <button class="btn-icon danger" onclick="confirmDelete('brand', ${b.id}, '${escHtml(b.name)}')" title="Delete">🗑</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#DC2626;">${escHtml(err.message || 'Failed to load brands')}</td></tr>`;
+      showToast(err.message, 'error');
+    }
+  }
+
+  function initials(name) {
+    return (name || '').trim().split(/\s+/).map(w => w.charAt(0)).join('').slice(0, 2).toUpperCase() || '—';
+  }
+
+  // Open the modal in "add" mode (no id) or let editBrand() prefill it.
+  function openBrandModal() {
+    document.getElementById('brandForm').reset();
+    document.getElementById('brandId').value = '';
+    document.getElementById('brandLogoUrl').value = '';
+    document.getElementById('brandStorageId').value = '';
+    document.getElementById('brandModalTitle').textContent = 'Add Brand';
+    document.getElementById('brandLogoBtnLabel').textContent = 'Upload Logo';
+    renderBrandLogoPreview('');
+    selectBrandStatus(true);
+    document.getElementById('brandModal').classList.add('show');
+    setTimeout(() => document.getElementById('brandName').focus(), 50);
+  }
+
+  function closeBrandModal() {
+    document.getElementById('brandModal').classList.remove('show');
+    document.getElementById('brandStatusSelect').classList.remove('open');
+  }
+
+  function selectBrandStatus(active) {
+    document.getElementById('brandActive').value = active ? 'true' : 'false';
+    document.getElementById('brandStatusValue').innerHTML = active
+      ? '<span class="status-dot published"></span> Active'
+      : '<span class="status-dot draft"></span> Inactive';
+    document.getElementById('brandStatusSelect').classList.remove('open');
+    document.querySelectorAll('#brandStatusSelect .custom-select-option').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.value === (active ? 'true' : 'false'));
+    });
+  }
+
+  function renderBrandLogoPreview(url) {
+    const box = document.getElementById('brandLogoPreview');
+    if (url) {
+      box.innerHTML = `<img src="${escHtml(url)}" alt="Logo preview" style="width:100%;height:100%;object-fit:contain;" />`;
+    } else {
+      box.innerHTML = '<span style="font-size:.72rem;color:var(--gray-600);text-align:center;padding:8px;">No logo yet</span>';
+    }
+  }
+
+  async function editBrand(id) {
+    try {
+      const data = await api(`/api/admin/brands/${id}`);
+      if (!data) return;
+      const b = data.brand;
+      document.getElementById('brandId').value = b.id;
+      document.getElementById('brandName').value = b.name;
+      document.getElementById('brandPosition').value = b.position != null ? b.position : '';
+      document.getElementById('brandLogoUrl').value = b.logo_url || '';
+      document.getElementById('brandStorageId').value = b.storage_id || '';
+      document.getElementById('brandModalTitle').textContent = 'Edit Brand';
+      document.getElementById('brandLogoBtnLabel').textContent = b.logo_url ? 'Replace Logo' : 'Upload Logo';
+      renderBrandLogoPreview(b.logo_url || '');
+      selectBrandStatus(!!b.active);
+      document.getElementById('brandModal').classList.add('show');
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  // Upload a logo to storage, then preview it. The URL is saved onto the
+  // brand only when the admin clicks Save.
+  async function uploadBrandLogo(files) {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (file.size > 10 * 1024 * 1024) { showToast('File too large (max 10MB)', 'error'); return; }
+    const label = document.getElementById('brandLogoBtnLabel');
+    const prevLabel = label.textContent;
+    label.textContent = 'Uploading…';
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/admin/brands/logo', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      document.getElementById('brandLogoUrl').value = data.url;
+      document.getElementById('brandStorageId').value = data.storage_id || '';
+      renderBrandLogoPreview(data.url);
+      label.textContent = 'Replace Logo';
+      showToast('Logo uploaded');
+    } catch (err) {
+      label.textContent = prevLabel;
+      showToast(err.message, 'error');
+    }
+    document.getElementById('brandLogoInput').value = '';
+  }
+
+  async function saveBrand(e) {
+    e.preventDefault();
+    const id = document.getElementById('brandId').value;
+    const name = document.getElementById('brandName').value.trim();
+    if (!name) { showToast('Brand name is required', 'error'); return; }
+
+    const posRaw = document.getElementById('brandPosition').value;
+    const payload = {
+      name,
+      logo_url: document.getElementById('brandLogoUrl').value,
+      storage_id: document.getElementById('brandStorageId').value,
+      active: document.getElementById('brandActive').value === 'true'
+    };
+    if (posRaw !== '' && !isNaN(Number(posRaw))) payload.position = Number(posRaw);
+
+    const btn = document.getElementById('brandSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      if (id) {
+        await api(`/api/admin/brands/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        showToast('Brand updated');
+      } else {
+        await api('/api/admin/brands', { method: 'POST', body: JSON.stringify(payload) });
+        showToast('Brand added');
+      }
+      closeBrandModal();
+      loadBrands();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save Brand';
+    }
+  }
+
   // ===== DELETE CONFIRMATION =====
   let deleteType = '';
   let deleteId = null;
@@ -1555,6 +1846,10 @@
         await api(`/api/admin/media/${deleteId}`, { method: 'DELETE' });
         showToast('Media deleted');
         loadMedia();
+      } else if (deleteType === 'brand') {
+        await api(`/api/admin/brands/${deleteId}`, { method: 'DELETE' });
+        showToast('Brand deleted');
+        loadBrands();
       }
     } catch (err) { showToast(err.message, 'error'); }
     closeDeleteModal();
