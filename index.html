@@ -3,9 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RTBW — Everything for Babies, Kids &amp; Moms</title>
-  <meta name="description" content="RTBW stocks newborn clothes, kids party and daily wear, toys, school bags, water bottles, stationery, maternity wear, night suits, baby carriers, tricycles and walkers. Quality products at friendly prices." />
+
+  <!-- ==========================================================
+       SEO — primary meta
+       NOTE: update SITE_URL below to your live domain if you use a
+       custom domain. Keep every absolute URL (canonical + og:*)
+       pointing at the same domain.
+  ========================================================== -->
+  <title>RTBW | Baby, Kids & Mom Store in Bengaluru — Ramdev Toys & Baby Wear</title>
+  <meta name="description" content="Ramdev Toys & Baby Wear (RTBW), Vignan Nagar, Bengaluru. Newborn clothes, kids party & daily wear, toys, school bags, bottles, stationery, maternity & nightwear, carriers, tricycles and walkers — quality products at friendly prices." />
+  <meta name="keywords" content="baby store Bengaluru, kids wear Vignan Nagar, newborn clothes, toys shop, school bags, maternity wear, Ramdev Toys & Baby Wear, RTBW" />
+  <meta name="author" content="Ramdev Toys & Baby Wear" />
+  <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#FF6612" />
+  <link rel="canonical" href="https://ramdevtoysandbabywear.com/" />
+
+  <!-- Open Graph (Facebook, WhatsApp, LinkedIn, etc.) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="RTBW — Ramdev Toys & Baby Wear" />
+  <meta property="og:title" content="RTBW | Baby, Kids & Mom Store in Bengaluru" />
+  <meta property="og:description" content="Everything for babies, kids & moms under one roof — newborn clothes, toys, school essentials, maternity & nightwear. Vignan Nagar, Bengaluru." />
+  <meta property="og:url" content="https://ramdevtoysandbabywear.com/" />
+  <meta property="og:image" content="https://ramdevtoysandbabywear.com/assets/logo.png" />
+  <meta property="og:image:alt" content="RTBW — Ramdev Toys & Baby Wear" />
+  <meta property="og:locale" content="en_IN" />
+
+  <!-- Twitter / X card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="RTBW | Baby, Kids & Mom Store in Bengaluru" />
+  <meta name="twitter:description" content="Everything for babies, kids & moms under one roof — newborn clothes, toys, school essentials, maternity & nightwear. Vignan Nagar, Bengaluru." />
+  <meta name="twitter:image" content="https://ramdevtoysandbabywear.com/assets/logo.png" />
 
   <!-- ==========================================================
        FAVICON — site tab icon (served from /assets)
@@ -15,6 +42,10 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Open an early connection to Supabase Storage so the admin-managed hero
+       image (swapped in by JS) downloads without a cold DNS/TLS handshake. -->
+  <link rel="preconnect" href="https://qqkxdwiqeicetyyvoobq.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://qqkxdwiqeicetyyvoobq.supabase.co" />
   <!-- Baloo 2 = rounded, playful letterforms that match the RTBW logo -->
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Poppins:wght@500;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
@@ -1064,6 +1095,42 @@
       .brand-sequence[data-seq="1"] { display: none; }   /* one static set is enough */
     }
   </style>
+
+  <!-- ==========================================================
+       STRUCTURED DATA — LocalBusiness (Store)
+       Helps Google show the correct name, address, hours, phone
+       and rich results instead of guessing from page text.
+  ========================================================== -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "name": "Ramdev Toys & Baby Wear (RTBW)",
+    "alternateName": "RTBW",
+    "image": "https://ramdevtoysandbabywear.com/assets/logo.png",
+    "url": "https://ramdevtoysandbabywear.com/",
+    "telephone": "+91-80-43714157",
+    "email": "rtbw2016@gmail.com",
+    "description": "Store for babies, kids and moms — newborn clothes, kids party & daily wear, toys, school bags, bottles, stationery, maternity & nightwear, baby carriers, tricycles and walkers.",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "#15/16, Vignan Nagar Main Road, New Thippasandra Post",
+      "addressLocality": "Bengaluru",
+      "addressRegion": "Karnataka",
+      "postalCode": "560075",
+      "addressCountry": "IN"
+    },
+    "openingHoursSpecification": [{
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+      "opens": "09:00",
+      "closes": "21:30"
+    }],
+    "sameAs": [
+      "https://www.instagram.com/_ramdev2016rtbw/"
+    ]
+  }
+  </script>
 </head>
 
 <body>
@@ -1272,7 +1339,7 @@
       </div>
       <div class="hero-visual reveal-right">
         <div class="hero-img-main">
-          <img data-slot="hero_main" src="image assets/imgi_123_b1-400.jpg" alt="Baby and kids products display" loading="eager" decoding="async" />
+          <img data-slot="hero_main" src="image assets/imgi_123_b1-400.jpg" alt="Baby and kids products display" loading="eager" fetchpriority="high" decoding="async" />
         </div>
       </div>
     </div>
@@ -2687,18 +2754,35 @@
   <!-- CMS Image Slot Loader: fetches admin-managed images and replaces static defaults -->
   <script>
   (function() {
+    // Swap the hero image first and with high priority so the largest,
+    // above-the-fold image starts downloading before any other slot.
+    function applySlot(img, slot) {
+      if (!slot || !slot.url) return;
+      // Avoid reassigning an identical URL — that would needlessly restart
+      // the download and can cause a visible flash.
+      var current = img.getAttribute('src') || '';
+      if (current !== slot.url) img.src = slot.url;
+      if (slot.alt) img.alt = slot.alt;
+    }
+
     fetch('/api/image-slots')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (!data || !data.slots) return;
         var slots = data.slots;
+
+        // 1) Hero first — it's the above-the-fold hero image.
+        var hero = document.querySelector('img[data-slot="hero_main"]');
+        if (hero) {
+          hero.setAttribute('fetchpriority', 'high');
+          hero.setAttribute('loading', 'eager');
+          applySlot(hero, slots['hero_main']);
+        }
+
+        // 2) Everything else.
         document.querySelectorAll('img[data-slot]').forEach(function(img) {
-          var key = img.getAttribute('data-slot');
-          var slot = slots[key];
-          if (slot && slot.url) {
-            img.src = slot.url;
-            if (slot.alt) img.alt = slot.alt;
-          }
+          if (img === hero) return;
+          applySlot(img, slots[img.getAttribute('data-slot')]);
         });
       })
       .catch(function() { /* Silently fail — keep default images */ });

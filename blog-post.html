@@ -3,8 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ==========================================================
+       SEO — defaults for this blog post.
+       These are the fallback values shown before the post loads
+       and for crawlers; the script at the bottom rewrites the
+       title, description and OG/Twitter tags per article once the
+       blog data is fetched.
+  ========================================================== -->
   <title>Blog — RTBW</title>
-  <meta name="description" content="" id="metaDesc" />
+  <meta name="description" content="Parenting tips, product guides and store updates from RTBW (Ramdev Toys & Baby Wear), Bengaluru." id="metaDesc" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#FF6612" />
+  <link rel="canonical" id="metaCanonical" href="https://ramdevtoysandbabywear.com/blog" />
+
+  <!-- Open Graph (updated per article by script) -->
+  <meta property="og:type" content="article" id="ogType" />
+  <meta property="og:site_name" content="RTBW — Ramdev Toys & Baby Wear" />
+  <meta property="og:title" content="Blog — RTBW" id="ogTitle" />
+  <meta property="og:description" content="Parenting tips, product guides and store updates from RTBW, Bengaluru." id="ogDesc" />
+  <meta property="og:url" content="https://ramdevtoysandbabywear.com/blog" id="ogUrl" />
+  <meta property="og:image" content="https://ramdevtoysandbabywear.com/assets/logo.png" id="ogImage" />
+  <meta property="og:image:alt" content="RTBW — Ramdev Toys & Baby Wear" />
+  <meta property="og:locale" content="en_IN" />
+
+  <!-- Twitter / X card (updated per article by script) -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Blog — RTBW" id="twTitle" />
+  <meta name="twitter:description" content="Parenting tips, product guides and store updates from RTBW, Bengaluru." id="twDesc" />
+  <meta name="twitter:image" content="https://ramdevtoysandbabywear.com/assets/logo.png" id="twImage" />
+
   <link rel="icon" type="image/png" href="/assets/favicon%20logo.png" />
   <link rel="apple-touch-icon" href="/assets/favicon%20logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -227,9 +255,27 @@
       const data = await res.json();
       const blog = data.blog;
 
-      // Update page meta
-      document.title = blog.title + ' — RTBW Blog';
-      document.getElementById('metaDesc').content = blog.excerpt || '';
+      // Update page meta (title, description, canonical, OG + Twitter)
+      const SITE_URL = 'https://ramdevtoysandbabywear.com';
+      const postTitle = blog.title + ' — RTBW Blog';
+      const postDesc = (blog.excerpt || 'Parenting tips, product guides and store updates from RTBW, Bengaluru.').slice(0, 200);
+      const postUrl = SITE_URL + '/blog/' + encodeURIComponent(slug);
+      const postImage = blog.featured_image || (SITE_URL + '/assets/logo.png');
+
+      const setMeta = (id, value) => { const el = document.getElementById(id); if (el) el.setAttribute('content', value); };
+
+      document.title = postTitle;
+      setMeta('metaDesc', postDesc);
+      const canon = document.getElementById('metaCanonical');
+      if (canon) canon.setAttribute('href', postUrl);
+
+      setMeta('ogTitle', postTitle);
+      setMeta('ogDesc', postDesc);
+      setMeta('ogUrl', postUrl);
+      setMeta('ogImage', postImage);
+      setMeta('twTitle', postTitle);
+      setMeta('twDesc', postDesc);
+      setMeta('twImage', postImage);
 
       container.innerHTML = `
         <section class="post-header">
